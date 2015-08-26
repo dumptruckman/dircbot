@@ -10,37 +10,19 @@ import org.jetbrains.annotations.NotNull;
 import java.text.DecimalFormat;
 import java.util.regex.Pattern;
 
-public class RollCommand extends Command {
+public class ChanceCommand extends Command {
 
-    private static final Pattern DICE_PATTERN = Pattern.compile("([\\d()+\\-/^*d]+#)*[\\d()+\\-/^*d]*d[\\d()+\\-/^*d]+\\s.*");
-    static final DecimalFormat FORMAT = new DecimalFormat() {{setDecimalSeparatorAlwaysShown(false);}};
-
-    public static boolean isDice(@NotNull String message) {
-        return DICE_PATTERN.matcher(message).matches();
-    }
-
-    public RollCommand(DIRCBot bot, String channel, String sender, String login, String hostname, CommandContext context) throws CommandException {
+    public ChanceCommand(DIRCBot bot, String channel, String sender, String login, String hostname, CommandContext context) throws CommandException {
         super(bot, channel, sender, login, hostname, context);
     }
 
     @Override
     protected void runCommand(@NotNull CommandContext commandContext) {
-
         try {
-            String diceString;
-            if (!commandContext.getCommand().equalsIgnoreCase("roll")) {
-                diceString = commandContext.getCommand() + " " + commandContext.getOriginalArgs();
-            } else if (commandContext.argsLength() > 0) {
-                diceString = commandContext.getOriginalArgs();
-            } else {
-                diceString = "1d20";
-            }
-
+            String diceString = commandContext.getOriginalArgs();
             StringBuilder resultBuffer = new StringBuilder().append(getSender()).append(", ");
 
             String[] separateRolls = diceString.split(";");
-
-            DiceRolls rolls = new DiceRolls();
 
             for (int i = 0; i < separateRolls.length; i++) {
                 if (i > 0) {
@@ -52,7 +34,7 @@ public class RollCommand extends Command {
                 if (rollDetails.length > 1) {
                     resultBuffer.append(rollDetails[1]).append(": ");
                 } else {
-                    resultBuffer.append(rollDetails[0]).append(": ");
+                    resultBuffer.append("chance: ");
                 }
 
                 String[] multiRoll = rollDetails[0].split("#", 2);
@@ -61,22 +43,25 @@ public class RollCommand extends Command {
                         int numRolls = Integer.parseInt(multiRoll[0]);
                         if (numRolls < 1) {
                             numRolls = 1;
+                        } else if (numRolls > 100) {
+                            throw new IllegalArgumentException("You may not roll more than 100 dice!");
                         }
                         for (int j = 0; j < numRolls; j++) {
                             if (j > 0) {
                                 resultBuffer.append(", ");
                             }
-                            resultBuffer = rollAndAppendResults(multiRoll[1], resultBuffer, rolls);
+                            resultBuffer = rollAndAppendResults(multiRoll[1], resultBuffer);
                         }
                     } catch (NumberFormatException e) {
-                        resultBuffer = rollAndAppendResults(multiRoll[1], resultBuffer, rolls);
+                        resultBuffer = rollAndAppendResults(multiRoll[1], resultBuffer);
                     }
                 } else {
-                    resultBuffer = rollAndAppendResults(multiRoll[0], resultBuffer, rolls);
+                    resultBuffer = rollAndAppendResults(multiRoll[0], resultBuffer);
                 }
             }
 
             reply(resultBuffer.toString());
+
         } catch (IllegalArgumentException e) {
             if (e.getMessage() != null) {
                 reply(e.getMessage());
@@ -86,10 +71,14 @@ public class RollCommand extends Command {
         }
     }
 
-    private StringBuilder rollAndAppendResults(@NotNull String rollString, @NotNull StringBuilder buffer, @NotNull DiceRolls rolls) {
-        double rollResult = getBot().getDiceEvaluator().evaluate(rollString, rolls);
-        buffer.append(FORMAT.format(rollResult)).append(" ").append(rolls.getRollStrings());
-        rolls.clearRollStrings();
+    private StringBuilder rollAndAppendResults(@NotNull String rollString, @NotNull StringBuilder buffer) {
+        int rollResult = getBot().getDiceCache().getRoll(10);
+        buffer.append(RollCommand.FORMAT.format(rollResult)).append(" - ");
+        if (rollResult == 10) {
+            buffer.append("1 Success");
+        } else {
+            buffer.append("No Success");
+        }
         return buffer;
     }
 }

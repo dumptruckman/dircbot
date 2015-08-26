@@ -1,6 +1,9 @@
 package com.dumptruckman.dircbot;
 
+import com.dumptruckman.dircbot.commands.AlternateRollCommand;
+import com.dumptruckman.dircbot.commands.ChanceCommand;
 import com.dumptruckman.dircbot.commands.RollCommand;
+import com.dumptruckman.dircbot.commands.SuccessCommand;
 import com.dumptruckman.dircbot.util.DiceCache;
 import com.dumptruckman.dircbot.util.DiceEvaluator;
 import org.jetbrains.annotations.NotNull;
@@ -35,6 +38,20 @@ public class DIRCBot extends PircBot {
     protected void onMessage(String channel, String sender, String login, String hostname, String message) {
         if (message.startsWith("!") && message.length() > 1) {
             processCommand(channel, sender, login, hostname, message.substring(1));
+        } else if (message.startsWith(".") && message.length() > 1) {
+            processAlternateCommand(channel, sender, login, hostname, message.substring(1));
+        } else if (RollCommand.isDice(message)) {
+            try {
+                ((Command) new RollCommand(this, channel, sender, login, hostname, new CommandContext(message))).runCommand();
+            } catch (CommandException e) {
+                if (e.getCause() != null) {
+                    e.printStackTrace();
+                }
+                if (channel == null) {
+                    channel = sender;
+                }
+                sendMessage(channel, e.getMessage());
+            }
         }
     }
 
@@ -44,6 +61,39 @@ public class DIRCBot extends PircBot {
             switch (context.getCommand()) {
                 case "roll":
                     ((Command) new RollCommand(this, channel, sender, login, hostname, context)).runCommand();
+                    break;
+                default:
+                    throw new CommandException("I don't know of a command named '" + context.getCommand() + "'.");
+            }
+        } catch (CommandException e) {
+            if (e.getCause() != null) {
+                e.printStackTrace();
+            }
+            if (channel == null) {
+                channel = sender;
+            }
+            sendMessage(channel, e.getMessage());
+        }
+    }
+
+    private void processAlternateCommand(String channel, String sender, String login, String hostname, String message) {
+        try {
+            CommandContext context = new CommandContext(message);
+            switch (context.getCommand()) {
+                case "roll":
+                    ((Command) new AlternateRollCommand(this, channel, sender, login, hostname, context, 10)).runCommand();
+                    break;
+                case "roll9":
+                    ((Command) new AlternateRollCommand(this, channel, sender, login, hostname, context, 9)).runCommand();
+                    break;
+                case "roll8":
+                    ((Command) new AlternateRollCommand(this, channel, sender, login, hostname, context, 8)).runCommand();
+                    break;
+                case "success":
+                    ((Command) new SuccessCommand(this, channel, sender, login, hostname, context)).runCommand();
+                    break;
+                case "chance":
+                    ((Command) new ChanceCommand(this, channel, sender, login, hostname, context)).runCommand();
                     break;
                 default:
                     throw new CommandException("I don't know of a command named '" + context.getCommand() + "'.");
