@@ -32,4 +32,8 @@ public class DiceRolls {
         buffer.append("]");
         return buffer.toString();
     }
+
+    public void clearRollStrings() {
+        rolls.clear();
+    }
 }
