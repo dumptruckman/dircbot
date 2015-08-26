@@ -390,4 +390,16 @@ public final class CommandContext {
     public String getOriginalArgs() {
         return originalArgs;
     }
+
+    @Override
+    public String toString() {
+        return "CommandContext{" +
+                "command='" + command + '\'' +
+                ", originalArgs='" + originalArgs + '\'' +
+                ", parsedArgs=" + parsedArgs +
+                ", originalArgIndices=" + originalArgIndices +
+                ", booleanFlags=" + booleanFlags +
+                ", valueFlags=" + valueFlags +
+                '}';
+    }
 }

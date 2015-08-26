@@ -9,24 +9,43 @@ import com.dumptruckman.dircbot.util.DiceEvaluator;
 import org.jetbrains.annotations.NotNull;
 import org.jibble.pircbot.PircBot;
 
+import java.util.HashSet;
+
 public class DIRCBot extends PircBot {
 
     private final DiceCache diceCache = new DiceCache(this);
     private final DiceEvaluator diceEvaluator = new DiceEvaluator(this);
 
-    public DIRCBot(@NotNull String name) {
-        setName(name);
-    }
+    private String password;
 
     public static void main(String[] args) throws Exception {
+        String[] argsNew = new String[args.length + 1];
+        argsNew[0] = "dircbot";
+        System.arraycopy(args, 0, argsNew, 1, args.length);
+        CommandContext startupContext = new CommandContext(argsNew,
+                new HashSet<Character>() {{
+                    add('n');
+                    add('c');
+                }});
 
-        DIRCBot bot = new DIRCBot("dtmbot");
+        DIRCBot bot = new DIRCBot();
+        bot.setVersion("dev-SNAPSHOT");
 
-        bot.setVerbose(true);
+        try {
+            bot.setName(startupContext.getFlag('n', "DircBot"));
+            bot.setVerbose(startupContext.hasFlag('v'));
+            bot.password = startupContext.getFlag('p', null);
 
-        bot.connect("irc.synirc.net");
-
-        bot.joinChannel("#bottesting");
+            bot.connect(startupContext.getString(0));
+            if (startupContext.hasFlag('c')) {
+                String[] channels = startupContext.getFlag('c').split(",");
+                for (String channel : channels) {
+                    bot.joinChannel(channel);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -122,5 +141,9 @@ public class DIRCBot extends PircBot {
         if (targetNick.equals(getNick()) && sourceNick.equals("dumptruckman")) {
             joinChannel(channel);
         }
+    }
+
+    public boolean isCorrectPassword(@NotNull String password) {
+        return this.password.equals(password);
     }
 }
