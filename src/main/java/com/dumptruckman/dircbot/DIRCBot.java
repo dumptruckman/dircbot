@@ -24,7 +24,7 @@ public class DIRCBot extends PircBot {
     private final DiceCache diceCache = new DiceCache(this);
     private final DiceEvaluator diceEvaluator = new DiceEvaluator(this);
 
-    private String password;
+    private String password = "";
     private final Set<String> administrators = new HashSet<>();
 
     private boolean kill = false;
@@ -51,7 +51,7 @@ public class DIRCBot extends PircBot {
             bot.setName(nick);
             bot.setLogin(nick.length() >= 9 ? nick.substring(0, 8) : nick);
             bot.setVerbose(startupContext.hasFlag('v'));
-            bot.password = startupContext.getFlag('p', null);
+            bot.password = startupContext.getFlag('p', "");
             bot.freeJoin = startupContext.hasFlag('j');
             bot.freeRoll = !startupContext.hasFlag('R');
             bot.successDiceMode = startupContext.hasFlag('s');
