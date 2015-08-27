@@ -4,9 +4,11 @@ An IRC bot I wrote using [PircBot](https://github.com/davidlazar/PircBot).
 
 ## Usage
 
-Run the bot with the follow command or similar
+Check the downloads folder for a jar file.
 
-`java -jar ./dircbot-dev-SNAPSHOT-jar-with-dependencies.jar some.irc.server:6667 -n nickname -v -c #bottesting -p adminpassword`
+Run the bot with the follow command or similar:
+
+`java -jar ./dircbot-1.0-SNAPSHOT-jar-with-dependencies.jar some.irc.server:6667 -n nickname -v -c #bottesting -p adminpassword`
 
 Startup Arguments:
 
