@@ -54,4 +54,8 @@ public abstract class Command {
     protected void reply(@NotNull String message) {
         bot.sendMessage(channel != null ? channel : sender, message);
     }
+
+    protected void replyToSender(@NotNull String message) {
+        bot.sendMessage(sender, message);
+    }
 }

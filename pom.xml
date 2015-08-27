@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.dumptruckman</groupId>
     <artifactId>dircbot</artifactId>
-    <version>dev-SNAPSHOT</version>
+    <version>1.0-SNAPSHOT</version>
     <name>dIRCbot</name>
     <description>An IRC Bot</description>
     <licenses>
