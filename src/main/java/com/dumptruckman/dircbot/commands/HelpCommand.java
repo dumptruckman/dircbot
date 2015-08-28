@@ -19,6 +19,7 @@ public class HelpCommand extends Command {
         replyToSender("============");
         replyToSender("--> login <password> [channel] - logs you in as bot admin. specify channel to have me join that channel. you must be in a channel with me to be logged in.");
         replyToSender("--> join <channel> - makes me join a channel." + (getBot().isFreeJoinEnabled() ? "" : " (must be bot admin)"));
+        replyToSender("--> lmgtfy <search terms> - returns a let my google that for you link.");
         if (loggedIn) {
             replyToSender("--> part <channel> - makes me part a channel. (must be bot admin)");
             replyToSender("--> kill - makes me disconnect from irc and terminate my java process.");

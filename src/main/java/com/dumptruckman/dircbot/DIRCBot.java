@@ -5,6 +5,7 @@ import com.dumptruckman.dircbot.commands.ChanceCommand;
 import com.dumptruckman.dircbot.commands.HelpCommand;
 import com.dumptruckman.dircbot.commands.JoinCommand;
 import com.dumptruckman.dircbot.commands.KillCommand;
+import com.dumptruckman.dircbot.commands.LmgtfyCommand;
 import com.dumptruckman.dircbot.commands.LoginCommand;
 import com.dumptruckman.dircbot.commands.PartCommand;
 import com.dumptruckman.dircbot.commands.RollCommand;
@@ -106,6 +107,10 @@ public class DIRCBot extends PircBot {
     private void processCommand(@Nullable String channel, String sender, String login, String hostname, String message) throws CommandException {
         CommandContext context = new CommandContext(message);
         switch (context.getCommand()) {
+            case "lmgtfy":
+            case "google":
+                ((Command) new LmgtfyCommand(this, channel, sender, login, hostname, context)).runCommand();
+                break;
             case "roll":
                 if (successDiceMode) {
                     ((Command) new AlternateRollCommand(this, channel, sender, login, hostname, context, 10)).runCommand();
