@@ -27,7 +27,7 @@ public class LmgtfyCommand extends Command {
             }
             reply(searchTerms.toString());
         } else {
-            reply(getSender() + ", you should probably actually specify some search terms...");
+            reply(getSender() + ", you should probably specify some search terms...");
         }
     }
 }
