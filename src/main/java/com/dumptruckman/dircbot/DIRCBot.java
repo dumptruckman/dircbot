@@ -17,7 +17,9 @@ import org.jetbrains.annotations.Nullable;
 import org.jibble.pircbot.PircBot;
 import org.jibble.pircbot.User;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 public class DIRCBot extends PircBot {
@@ -27,6 +29,9 @@ public class DIRCBot extends PircBot {
 
     private String password = "";
     private final Set<String> administrators = new HashSet<>();
+
+    private final Map<String, Boolean> nicksToCheckIdentification = new HashMap<>();
+    private final Set<String> registeredUsers = new HashSet<>();
 
     private boolean kill = false;
     private boolean freeJoin = false;
@@ -71,6 +76,9 @@ public class DIRCBot extends PircBot {
 
     @Override
     protected void onPrivateMessage(String sender, String login, String hostname, String message) {
+        if (sender.equalsIgnoreCase("NickServ")) {
+            onNickServMessage(message);
+        }
         try {
             if (message.startsWith("!") && message.length() > 1) {
                 processCommand(null, sender, login, hostname, message.substring(1));
@@ -181,10 +189,11 @@ public class DIRCBot extends PircBot {
 
     @Override
     protected void onPart(String channel, String sender, String login, String hostname) {
-        if (isAdministrator(login, hostname)) {
-            if (!isNickInChannels(sender)) {
+        if (!isNickInChannels(sender)) {
+            if (isAdministrator(login, hostname)) {
                 removeAdministrator(login, hostname);
             }
+            removeRegisteredUser(login, hostname);
         }
     }
 
@@ -256,14 +265,62 @@ public class DIRCBot extends PircBot {
 
     private void removeAdministrator(@NotNull String login, @NotNull String hostname) {
         String adminName = login + "@" + hostname;
-        administrators.remove(adminName);
-        log("Removed administrator: " + adminName);
+        if (administrators.remove(adminName)) {
+            log("Removed administrator: " + adminName);
+        }
     }
 
     private void addAdministrator(@NotNull String login, @NotNull String hostname) {
         String adminName = login + "@" + hostname;
-        administrators.add(adminName);
-        log("Added administrator: " + adminName);
+        if (administrators.add(adminName)) {
+            log("Added administrator: " + adminName);
+        }
+    }
+
+    public boolean isNickIdentified(@NotNull String nick, @NotNull String login, @NotNull String hostname) {
+        if (registeredUsers.contains(login + "@" + hostname)) {
+            return true;
+        }
+        nicksToCheckIdentification.put(nick, false);
+        sendMessage("NickServ", "status " + nick);
+        try {
+            Thread.sleep(300); // TODO figure out a better method...
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        try {
+            if (nicksToCheckIdentification.get(nick)) {
+                addRegisteredUser(login, hostname);
+                return true;
+            }
+            return false;
+        } finally {
+            nicksToCheckIdentification.remove(nick);
+        }
+    }
+
+    private void onNickServMessage(@NotNull String message) {
+        if (message.startsWith("(notice) STATUS") && message.length() > 17) {
+            String[] status = message.substring(16).split(" ");
+            if (nicksToCheckIdentification.containsKey(status[0]) && status[1].equals("3")) {
+                nicksToCheckIdentification.put(status[0], true);
+                log("Verified " + status[0] + "'s identity.");
+            }
+        }
+    }
+
+    private void addRegisteredUser(@NotNull String login, @NotNull String hostname) {
+        String userName = login + "@" + hostname;
+        if (registeredUsers.add(userName)) {
+            log("Added registered user: " + userName);
+        }
+    }
+
+    private void removeRegisteredUser(@NotNull String login, @NotNull String hostname) {
+        String userName = login + "@" + hostname;
+        if (registeredUsers.remove(userName)) {
+            log("Removed registered user: " + userName);
+        }
     }
 
     public void kill() {
