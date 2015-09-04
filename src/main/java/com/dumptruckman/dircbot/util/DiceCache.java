@@ -1,6 +1,6 @@
 package com.dumptruckman.dircbot.util;
 
-import com.dumptruckman.dircbot.DIRCBot;
+import com.dumptruckman.dircbot.DircBot;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.BufferedReader;
@@ -26,7 +26,7 @@ public class DiceCache {
     private static final int REFILL_LIMIT = 101;
     private static final String RANDOM_ORG_URL = "https://www.random.org/integers/?num=%s&min=%s&max=%s&col=1&base=10&format=plain&rnd=new";
 
-    private final DIRCBot bot;
+    private final DircBot bot;
     private final ExecutorService executorService;
     private final Random backupRandom = new Random();
 
@@ -42,7 +42,7 @@ public class DiceCache {
     private final Queue<Integer> d20Cache = new LinkedBlockingQueue<>(QUEUE_SIZE);
     private final Queue<Integer> d100Cache = new LinkedBlockingQueue<>(QUEUE_SIZE);
 
-    public DiceCache(@NotNull DIRCBot bot) {
+    public DiceCache(@NotNull DircBot bot) {
         this.bot = bot;
         this.executorService = Executors.newSingleThreadExecutor();
     }

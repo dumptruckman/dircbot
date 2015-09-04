@@ -3,12 +3,12 @@ package com.dumptruckman.dircbot.commands;
 import com.dumptruckman.dircbot.Command;
 import com.dumptruckman.dircbot.CommandContext;
 import com.dumptruckman.dircbot.CommandException;
-import com.dumptruckman.dircbot.DIRCBot;
+import com.dumptruckman.dircbot.DircBot;
 import org.jetbrains.annotations.NotNull;
 
 public class JoinCommand extends Command {
 
-    public JoinCommand(DIRCBot bot, String channel, String sender, String login, String hostname, CommandContext context) throws CommandException {
+    public JoinCommand(DircBot bot, String channel, String sender, String login, String hostname, CommandContext context) throws CommandException {
         super(bot, channel, sender, login, hostname, context);
     }
 

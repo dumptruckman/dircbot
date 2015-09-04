@@ -1,18 +1,17 @@
 package com.dumptruckman.dircbot;
 
 import org.jetbrains.annotations.NotNull;
-import org.jibble.pircbot.PircBot;
 
 public abstract class Command {
 
-    private final DIRCBot bot;
+    private final DircBot bot;
     private final String channel;
     private final String sender;
     private final String login;
     private final String hostname;
     private final CommandContext commandContext;
 
-    public Command(DIRCBot bot, String channel, String sender, String login, String hostname, CommandContext commandContext) throws CommandException {
+    public Command(DircBot bot, String channel, String sender, String login, String hostname, CommandContext commandContext) throws CommandException {
         this.bot = bot;
         this.channel = channel;
         this.sender = sender;
@@ -25,7 +24,7 @@ public abstract class Command {
         runCommand(commandContext);
     }
 
-    public DIRCBot getBot() {
+    public DircBot getBot() {
         return bot;
     }
 

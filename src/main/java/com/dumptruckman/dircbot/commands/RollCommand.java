@@ -3,7 +3,7 @@ package com.dumptruckman.dircbot.commands;
 import com.dumptruckman.dircbot.Command;
 import com.dumptruckman.dircbot.CommandContext;
 import com.dumptruckman.dircbot.CommandException;
-import com.dumptruckman.dircbot.DIRCBot;
+import com.dumptruckman.dircbot.DircBot;
 import com.dumptruckman.dircbot.util.DiceRolls;
 import org.jetbrains.annotations.NotNull;
 
@@ -19,7 +19,7 @@ public class RollCommand extends Command {
         return DICE_PATTERN.matcher(message).matches();
     }
 
-    public RollCommand(DIRCBot bot, String channel, String sender, String login, String hostname, CommandContext context) throws CommandException {
+    public RollCommand(DircBot bot, String channel, String sender, String login, String hostname, CommandContext context) throws CommandException {
         super(bot, channel, sender, login, hostname, context);
     }
 

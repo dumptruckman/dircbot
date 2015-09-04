@@ -1,6 +1,6 @@
 package com.dumptruckman.dircbot.util;
 
-import com.dumptruckman.dircbot.DIRCBot;
+import com.dumptruckman.dircbot.DircBot;
 import com.fathzer.soft.javaluator.BracketPair;
 import com.fathzer.soft.javaluator.DoubleEvaluator;
 import com.fathzer.soft.javaluator.Function;
@@ -34,9 +34,9 @@ public class DiceEvaluator extends DoubleEvaluator {
         return parameters;
     }
 
-    private final DIRCBot bot;
+    private final DircBot bot;
 
-    public DiceEvaluator(DIRCBot bot) {
+    public DiceEvaluator(DircBot bot) {
         super(getParameters());
         this.bot = bot;
     }
