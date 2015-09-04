@@ -62,7 +62,10 @@ import com.dumptruckman.dircbot.event.irc.UserListEvent;
 import com.dumptruckman.dircbot.event.irc.UserModeEvent;
 import com.dumptruckman.dircbot.event.irc.VersionEvent;
 import com.dumptruckman.dircbot.event.irc.VoiceEvent;
+import com.dumptruckman.dircbot.plugin.Plugin;
 import com.dumptruckman.dircbot.plugin.PluginManager;
+import com.dumptruckman.dircbot.plugin.SimplePluginManager;
+import com.dumptruckman.dircbot.plugin.java.JavaPluginLoader;
 import com.dumptruckman.dircbot.util.DiceCache;
 import com.dumptruckman.dircbot.util.DiceEvaluator;
 import com.dumptruckman.dircbot.util.LoggerOutputStream;
@@ -73,6 +76,7 @@ import org.jibble.pircbot.DccFileTransfer;
 import org.jibble.pircbot.PircBot;
 import org.jibble.pircbot.User;
 
+import java.io.File;
 import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -99,11 +103,55 @@ public class DircBot extends PircBot {
     private boolean freeRoll = true;
     private boolean successDiceMode = false;
 
-    private PluginManager pluginManager;
+    private final File botDirectory = new File(".");
+    //private final File pluginDirectory = new File(botDirectory, "plugins");
+
+    private final SimplePluginManager pluginManager = new SimplePluginManager(this);
 
     public DircBot() {
         System.setOut(new PrintStream(new LoggerOutputStream(this.getLogger(), Level.INFO), true));
         System.setErr(new PrintStream(new LoggerOutputStream(this.getLogger(), Level.SEVERE), true));
+
+        pluginManager.registerInterface(JavaPluginLoader.class);
+    }
+
+    private void loadPlugins() {
+        pluginManager.registerInterface(JavaPluginLoader.class);
+
+        File pluginDirectory = new File(botDirectory, "plugins");
+
+        if (pluginDirectory.exists()) {
+            Plugin[] plugins = pluginManager.loadPlugins(pluginDirectory);
+            for (Plugin plugin : plugins) {
+                try {
+                    String message = String.format("Loading %s", plugin.getDescription().getFullName());
+                    plugin.getLogger().info(message);
+                    plugin.onLoad();
+                } catch (Throwable ex) {
+                    getLogger().log(Level.SEVERE, ex.getMessage() + " initializing " + plugin.getDescription().getFullName() + " (Is it up to date?)", ex);
+                }
+            }
+        } else {
+            pluginDirectory.mkdir();
+        }
+    }
+
+    private void enablePlugins() {
+        Plugin[] plugins = pluginManager.getPlugins();
+
+        for (Plugin plugin : plugins) {
+            if (!plugin.isEnabled()) {
+                loadPlugin(plugin);
+            }
+        }
+    }
+
+    private void loadPlugin(Plugin plugin) {
+        try {
+            pluginManager.enablePlugin(plugin);
+        } catch (Throwable ex) {
+            getLogger().log(Level.SEVERE, ex.getMessage() + " loading " + plugin.getDescription().getFullName() + " (Is it up to date?)", ex);
+        }
     }
 
     public static void main(String[] args) throws Exception {
@@ -120,15 +168,14 @@ public class DircBot extends PircBot {
                     add('i'); // identify password
                 }});
 
+        DircBot bot = new DircBot();
+        Bot.setInstance(bot);
+        bot.setVersion("1.0-SNAPSHOT");
+
         if (startupContext.argsLength() == 0) {
             System.out.println("You must specify a server.");
             return;
         }
-
-        DircBot bot = new DircBot();
-        Bot.setInstance(bot);
-        bot.setVersion("1.0-SNAPSHOT");
-        Bot.getLogger().info("TEST!!!!");
 
         try {
             String nick = startupContext.getFlag('n', "DircBot");
@@ -139,6 +186,9 @@ public class DircBot extends PircBot {
             bot.freeJoin = startupContext.hasFlag('j');
             bot.freeRoll = !startupContext.hasFlag('R');
             bot.successDiceMode = startupContext.hasFlag('s');
+
+            bot.loadPlugins();
+            bot.enablePlugins();
 
             if (startupContext.hasFlag('I')) {
                 bot.startIdentServer();

@@ -126,6 +126,7 @@ public final class JavaPluginLoader implements PluginLoader {
         return loader.plugin;
     }
 
+    @Override
     public PluginDescriptionFile getPluginDescription(@NotNull File file) throws InvalidDescriptionException {
 
         JarFile jar = null;
@@ -163,6 +164,7 @@ public final class JavaPluginLoader implements PluginLoader {
         }
     }
 
+    @Override
     public Pattern[] getPluginFileFilters() {
         return fileFilters.clone();
     }
@@ -216,6 +218,7 @@ public final class JavaPluginLoader implements PluginLoader {
         */
     }
 
+    @Override
     public Map<Class<? extends Event>, Set<RegisteredListener>> createRegisteredListeners(@NotNull Listener listener, @NotNull final Plugin plugin) {
 
         //boolean useTimings = server.getPluginManager().useTimings();
@@ -251,18 +254,16 @@ public final class JavaPluginLoader implements PluginLoader {
                 ret.put(eventClass, eventSet);
             }
 
-            EventExecutor executor = new EventExecutor() {
-                public void execute(Listener listener, Event event) throws EventException {
-                    try {
-                        if (!eventClass.isAssignableFrom(event.getClass())) {
-                            return;
-                        }
-                        method.invoke(listener, event);
-                    } catch (InvocationTargetException ex) {
-                        throw new EventException(ex.getCause());
-                    } catch (Throwable t) {
-                        throw new EventException(t);
+            EventExecutor executor = (Listener l, Event e) -> {
+                try {
+                    if (!eventClass.isAssignableFrom(e.getClass())) {
+                        return;
                     }
+                    method.invoke(l, e);
+                } catch (InvocationTargetException ex) {
+                    throw new EventException(ex.getCause());
+                } catch (Throwable t) {
+                    throw new EventException(t);
                 }
             };
             //if (useTimings) {
@@ -274,8 +275,9 @@ public final class JavaPluginLoader implements PluginLoader {
         return ret;
     }
 
+    @Override
     public void enablePlugin(final Plugin plugin) {
-        if (plugin instanceof JavaPlugin) {
+        if (!(plugin instanceof JavaPlugin)) {
             throw new RuntimeException("Plugin is not associated with this PluginLoader");
         }
 
@@ -303,6 +305,7 @@ public final class JavaPluginLoader implements PluginLoader {
         }
     }
 
+    @Override
     public void disablePlugin(Plugin plugin) {
         if (plugin instanceof JavaPlugin) {
             throw new RuntimeException("Plugin is not associated with this PluginLoader");

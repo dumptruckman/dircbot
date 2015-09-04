@@ -1,7 +1,5 @@
 package com.dumptruckman.dircbot.config;
 
-import java.util.Map;
-
 /**
  * This is a {@link Configuration} implementation that does not save or load
  * from any source, and stores all values in memory only.

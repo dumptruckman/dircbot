@@ -1,7 +1,8 @@
 # Created by .ignore support plugin (hsz.mobi)
 ### Java template
 *.class
-/target
+target/
+*/target
 
 # Mobile Tools for Java (J2ME)
 .mtj.tmp/
@@ -18,7 +19,9 @@ hs_err_pid*
 ### Example user template template
 ### Example user template
 
-/logs
+logs/
+bin/
+
 # IntelliJ project files
 .idea
 *.iml
@@ -116,3 +119,5 @@ crashlytics.properties
 crashlytics-build.properties
 
 
+## Project-specific files:
+*.bat

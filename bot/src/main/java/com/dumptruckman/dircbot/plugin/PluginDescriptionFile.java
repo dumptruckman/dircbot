@@ -76,10 +76,6 @@ import java.util.Set;
  *     <td>{@link #getPrefix()}</td>
  *     <td>The token to prefix plugin log entries</td>
  * </tr><tr>
- *     <td><code>database</code></td>
- *     <td>{@link #isDatabaseEnabled()}</td>
- *     <td>Indicator to enable database support</td>
- * </tr><tr>
  *     <td><code>depend</code></td>
  *     <td>{@link #getDepend()}</td>
  *     <td>Other required plugins</td>
@@ -91,6 +87,10 @@ import java.util.Set;
  *     <td><code>loadbefore</code></td>
  *     <td>{@link #getLoadBefore()}</td>
  *     <td>The inverse softdepend</td>
+ * </tr><tr>
+ *     <td><code>localization</code></td>
+ *     <td>{@link #getLocalization()}</td>
+ *     <td>Whether or not to use locale settings for plugin</td>
  * </tr><tr>
  *     <td><code>commands</code></td>
  *     <td>{@link #getCommands()}</td>
@@ -114,8 +114,8 @@ import java.util.Set;
  *website: http://www.curse.com/server-mods/minecraft/myplugin
  *
  *main: com.captaininflamo.bukkit.inferno.Inferno
- *database: false
  *depend: [NewFire, FlameWire]
+ *localization: true
  *
  *commands:
  *  flagrate:
@@ -193,6 +193,7 @@ public final class PluginDescriptionFile {
     private List<String> depend = ImmutableList.of();
     private List<String> softDepend = ImmutableList.of();
     private List<String> loadBefore = ImmutableList.of();
+    private boolean localization = false;
     private String version = null;
     private Map<String, Map<String, Object>> commands = null;
     private String description = null;
@@ -466,6 +467,10 @@ public final class PluginDescriptionFile {
         return loadBefore;
     }
 
+    public boolean getLocalization() {
+        return localization;
+    }
+
     /**
      * Gives the token to prefix plugin-specific logging messages with.
      * <ul>
@@ -521,34 +526,6 @@ public final class PluginDescriptionFile {
      *         <blockquote><pre>aliases: combust_me</pre></blockquote> or
      *         multiple alias format:
      *         <blockquote><pre>aliases: [combust_me, combustMe]</pre></blockquote></td>
-     * </tr><tr>
-     *     <td><code>permission</code></td>
-     *     <td>{@link PluginCommand#setPermission(String)}</td>
-     *     <td>String</td>
-     *     <td>The name of the {@link Permission} required to use the command.
-     *         A user without the permission will receive the specified
-     *         message (see {@linkplain
-     *         PluginCommand#setPermissionMessage(String) below}), or a
-     *         standard one if no specific message is defined. Without the
-     *         permission node, no {@link
-     *         PluginCommand#setExecutor(CommandExecutor) CommandExecutor} or
-     *         {@link PluginCommand#setTabCompleter(TabCompleter)
-     *         TabCompleter} will be called.</td>
-     *     <td><blockquote><pre>permission: inferno.flagrate</pre></blockquote></td>
-     * </tr><tr>
-     *     <td><code>permission-message</code></td>
-     *     <td>{@link PluginCommand#setPermissionMessage(String)}</td>
-     *     <td>String</td>
-     *     <td><ul>
-     *         <li>Displayed to a player that attempts to use a command, but
-     *             does not have the required permission. See {@link
-     *             PluginCommand#getPermission() above}.
-     *         <li>&lt;permission&gt; is a macro that is replaced with the
-     *             permission node required to use the command.
-     *         <li>Using empty quotes is a valid way to indicate nothing
-     *             should be displayed to a player.
-     *         </ul></td>
-     *     <td><blockquote><pre>permission-message: You do not have /&lt;permission&gt;</pre></blockquote></td>
      * </tr><tr>
      *     <td><code>usage</code></td>
      *     <td>{@link PluginCommand#setUsage(String)}</td>
@@ -740,6 +717,14 @@ public final class PluginDescriptionFile {
         depend = makePluginNameList(map, "depend");
         softDepend = makePluginNameList(map, "softdepend");
         loadBefore = makePluginNameList(map, "loadbefore");
+
+        if (map.get("localization") != null) {
+            try {
+                localization = (Boolean) map.get("localization");
+            } catch (ClassCastException ex) {
+                throw new InvalidDescriptionException(ex, "localization is of wrong type");
+            }
+        }
 
         if (map.get("website") != null) {
             website = map.get("website").toString();

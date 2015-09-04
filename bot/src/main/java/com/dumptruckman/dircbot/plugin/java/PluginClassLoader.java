@@ -91,7 +91,7 @@ final class PluginClassLoader extends URLClassLoader {
     }
 
     synchronized void initialize(@NotNull JavaPlugin javaPlugin) {
-        if (javaPlugin.getClass().getClassLoader() == this) {
+        if (javaPlugin.getClass().getClassLoader() != this) {
             throw new RuntimeException("Cannot initialize plugin outside of this class loader");
         }
         if (this.plugin != null || this.pluginInit != null) {

@@ -4,8 +4,8 @@ import com.dumptruckman.dircbot.DircBot;
 import com.dumptruckman.dircbot.plugin.Plugin;
 import com.dumptruckman.dircbot.plugin.PluginDescriptionFile;
 import com.dumptruckman.dircbot.plugin.PluginLoader;
-import com.dumptruckman.dircbot.plugin.PluginLogger;
 import org.jetbrains.annotations.NotNull;
+import pluginbase.logging.PluginLogger;
 
 import java.io.File;
 
@@ -38,15 +38,40 @@ public class JavaPlugin implements Plugin {
         this.dataFolder = dataFolder;
         this.classLoader = classLoader;
         this.configFile = new File(dataFolder, "config.yml");
-        this.logger = new PluginLogger(this);
+        this.logger = PluginLogger.getLogger(this);
     }
 
     ClassLoader getClassLoader() {
         return classLoader;
     }
 
-    void setEnabled(boolean enabled) {
-        this.enabled = enabled;
+    /**
+     * Sets the enabled state of this plugin
+     *
+     * @param enabled true if enabled, otherwise false
+     */
+    protected final void setEnabled(final boolean enabled) {
+        if (this.enabled != enabled) {
+            this.enabled = enabled;
+
+            if (this.enabled) {
+                onEnable();
+            } else {
+                onDisable();
+            }
+        }
+    }
+
+    @NotNull
+    @Override
+    public String getName() {
+        return getDescription().getName();
+    }
+
+    @NotNull
+    @Override
+    public File getDataFolder() {
+        return dataFolder;
     }
 
     @Override
@@ -78,4 +103,13 @@ public class JavaPlugin implements Plugin {
     public PluginLogger getLogger() {
         return logger;
     }
+
+    @Override
+    public void onDisable() { }
+
+    @Override
+    public void onLoad() { }
+
+    @Override
+    public void onEnable() { }
 }
