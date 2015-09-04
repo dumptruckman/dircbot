@@ -78,6 +78,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class DircBot extends PircBot {
@@ -100,12 +101,14 @@ public class DircBot extends PircBot {
 
     private PluginManager pluginManager;
 
+    public DircBot() {
+        System.setOut(new PrintStream(new LoggerOutputStream(this.getLogger(), Level.INFO), true));
+        System.setErr(new PrintStream(new LoggerOutputStream(this.getLogger(), Level.SEVERE), true));
+    }
+
     public static void main(String[] args) throws Exception {
-        // CraftBukkit start
-        System.setOut(new PrintStream(new LoggerOutputStream(this.getLogger().getLogger(), Level.INFO), true));
-        System.setErr(new PrintStream(new LoggerOutputStream(this.getLogger().getLogger(), Level.SEVERE), true));
-        // CraftBukkit end
         System.setProperty("java.util.logging.manager", "org.apache.logging.log4j.jul.LogManager");
+
         String[] argsNew = new String[args.length + 1];
         argsNew[0] = "dircbot";
         System.arraycopy(args, 0, argsNew, 1, args.length);
@@ -114,7 +117,13 @@ public class DircBot extends PircBot {
                     add('n'); // nickname
                     add('c'); // channels, comma separated
                     add('p'); // bot administrator password
+                    add('i'); // identify password
                 }});
+
+        if (startupContext.argsLength() == 0) {
+            System.out.println("You must specify a server.");
+            return;
+        }
 
         DircBot bot = new DircBot();
         Bot.setInstance(bot);
@@ -130,6 +139,10 @@ public class DircBot extends PircBot {
             bot.freeJoin = startupContext.hasFlag('j');
             bot.freeRoll = !startupContext.hasFlag('R');
             bot.successDiceMode = startupContext.hasFlag('s');
+
+            if (startupContext.hasFlag('I')) {
+                bot.startIdentServer();
+            }
 
             bot.connect(startupContext.getString(0));
             if (startupContext.hasFlag('c')) {
@@ -149,6 +162,11 @@ public class DircBot extends PircBot {
 
     public Logger getLogger() {
         return logger;
+    }
+
+    @Override
+    public void log(String message) {
+        getLogger().info(message);
     }
 
     @Override
@@ -625,26 +643,31 @@ public class DircBot extends PircBot {
 
     @Override
     protected void onVersion(String sourceNick, String sourceLogin, String sourceHostname, String target) {
+        super.onVersion(sourceNick, sourceLogin, sourceHostname, target);
         Events.callEvent(new VersionEvent(this, sourceNick, sourceLogin, sourceHostname, target));
     }
 
     @Override
     protected void onPing(String sourceNick, String sourceLogin, String sourceHostname, String target, String pingValue) {
+        super.onPing(sourceNick, sourceLogin, sourceHostname, target, pingValue);
         Events.callEvent(new PingEvent(this, sourceNick, sourceLogin, sourceHostname, target, pingValue));
     }
 
     @Override
     protected void onServerPing(String response) {
+        super.onServerPing(response);
         Events.callEvent(new ServerPingEvent(this, response));
     }
 
     @Override
     protected void onTime(String sourceNick, String sourceLogin, String sourceHostname, String target) {
+        super.onTime(sourceNick, sourceLogin, sourceHostname, target);
         Events.callEvent(new TimeEvent(this, sourceNick, sourceLogin, sourceHostname, target));
     }
 
     @Override
     protected void onFinger(String sourceNick, String sourceLogin, String sourceHostname, String target) {
+        super.onFinger(sourceNick, sourceLogin, sourceHostname, target);
         Events.callEvent(new FingerEvent(this, sourceNick, sourceLogin, sourceHostname, target));
     }
 
