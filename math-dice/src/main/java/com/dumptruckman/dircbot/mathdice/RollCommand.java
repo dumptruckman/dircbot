@@ -1,34 +1,33 @@
-package com.dumptruckman.dircbot.commands;
+package com.dumptruckman.dircbot.mathdice;
 
-import com.dumptruckman.dircbot.Command;
-import com.dumptruckman.dircbot.CommandContext;
-import com.dumptruckman.dircbot.CommandException;
-import com.dumptruckman.dircbot.DircBot;
-import com.dumptruckman.dircbot.util.DiceRolls;
+import com.dumptruckman.dircbot.command.CommandContext;
+import com.dumptruckman.dircbot.command.CommandException;
+import com.dumptruckman.dircbot.command.CommandInfo;
+import com.dumptruckman.dircbot.plugin.PluginCommand;
 import org.jetbrains.annotations.NotNull;
 
 import java.text.DecimalFormat;
 import java.util.regex.Pattern;
 
-public class RollCommand extends Command {
+@CommandInfo(aliases = {"roll", "r"})
+public class RollCommand extends PluginCommand<MathDicePlugin> {
 
     private static final Pattern DICE_PATTERN = Pattern.compile("([\\d()+\\-/^*d]+#)*[\\d()+\\-/^*d]*d[\\d()+\\-/^*d]+\\s.*");
-    static final DecimalFormat FORMAT = new DecimalFormat() {{setDecimalSeparatorAlwaysShown(false);}};
+    public static final DecimalFormat FORMAT = new DecimalFormat() {{setDecimalSeparatorAlwaysShown(false);}};
 
     public static boolean isDice(@NotNull String message) {
         return DICE_PATTERN.matcher(message).matches();
     }
 
-    public RollCommand(DircBot bot, String channel, String sender, String login, String hostname, CommandContext context) throws CommandException {
-        super(bot, channel, sender, login, hostname, context);
+    public RollCommand(MathDicePlugin plugin, String channel, String sender, String login, String hostname, CommandContext context) throws CommandException {
+        super(plugin, channel, sender, login, hostname, context);
     }
 
     @Override
     protected void runCommand(@NotNull CommandContext commandContext) {
-
         try {
             String diceString;
-            if (!commandContext.getCommand().equalsIgnoreCase("roll")) {
+            if (!commandContext.getCommand().equalsIgnoreCase("roll") && !commandContext.getCommand().equalsIgnoreCase("r")) {
                 diceString = commandContext.getCommand() + " " + commandContext.getOriginalArgs();
             } else if (commandContext.argsLength() > 0) {
                 diceString = commandContext.getOriginalArgs();
@@ -87,7 +86,7 @@ public class RollCommand extends Command {
     }
 
     private StringBuilder rollAndAppendResults(@NotNull String rollString, @NotNull StringBuilder buffer, @NotNull DiceRolls rolls) {
-        double rollResult = getBot().getDiceEvaluator().evaluate(rollString, rolls);
+        double rollResult = getPlugin().getDiceEvaluator().evaluate(rollString, rolls);
         buffer.append(FORMAT.format(rollResult)).append(" ").append(rolls.getRollStrings());
         rolls.clearRollStrings();
         return buffer;

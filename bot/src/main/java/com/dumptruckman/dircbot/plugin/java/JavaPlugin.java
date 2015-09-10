@@ -91,7 +91,7 @@ public class JavaPlugin implements Plugin {
 
     @Override
     public void log(String log) {
-        bot.log(log);
+        getLogger().info(log);
     }
 
     @Override

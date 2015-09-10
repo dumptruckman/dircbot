@@ -1,4 +1,4 @@
-package com.dumptruckman.dircbot.util;
+package com.dumptruckman.dircbot.mathdice;
 
 import com.dumptruckman.dircbot.DircBot;
 import org.jetbrains.annotations.NotNull;
@@ -26,7 +26,7 @@ public class DiceCache {
     private static final int REFILL_LIMIT = 101;
     private static final String RANDOM_ORG_URL = "https://www.random.org/integers/?num=%s&min=%s&max=%s&col=1&base=10&format=plain&rnd=new";
 
-    private final DircBot bot;
+    private final MathDicePlugin plugin;
     private final ExecutorService executorService;
     private final Random backupRandom = new Random();
 
@@ -42,14 +42,14 @@ public class DiceCache {
     private final Queue<Integer> d20Cache = new LinkedBlockingQueue<>(QUEUE_SIZE);
     private final Queue<Integer> d100Cache = new LinkedBlockingQueue<>(QUEUE_SIZE);
 
-    public DiceCache(@NotNull DircBot bot) {
-        this.bot = bot;
+    public DiceCache(@NotNull MathDicePlugin plugin) {
+        this.plugin = plugin;
         this.executorService = Executors.newSingleThreadExecutor();
     }
 
     public Future refillCache() {
         if (lastRefillRequest != null && !lastRefillRequest.isDone() && !lastRefillRequest.isCancelled()) {
-            bot.log("Cache refill requested but currently waiting for previous job to complete.");
+            plugin.log("Cache refill requested but currently waiting for previous job to complete.");
             return lastRefillRequest;
         }
         lastRefillRequest = executorService.submit(new CacheRefiller());
@@ -79,14 +79,14 @@ public class DiceCache {
         private void getNewRolls(Queue<Integer> rolls, int sides) {
             int number = QUEUE_SIZE - rolls.size();
             if (number <= 0) {
-                bot.log("Not fetching " + number + " d" + sides + "s!");
+                plugin.log("Not fetching " + number + " d" + sides + "s!");
             } else {
-                bot.log("Fetching " + number + " d" + sides + "s...");
+                plugin.log("Fetching " + number + " d" + sides + "s...");
                 List<Integer> newRolls = getRandomInts(number, 1, sides);
                 if (rolls.addAll(newRolls)) {
-                    bot.log("Added " + newRolls.size() + " new d" + sides + "s.");
+                    plugin.log("Added " + newRolls.size() + " new d" + sides + "s.");
                 } else {
-                    bot.log("Unable to add an extra " + newRolls.size() + " new d" + sides + "s...");
+                    plugin.log("Unable to add an extra " + newRolls.size() + " new d" + sides + "s...");
                 }
             }
         }
@@ -155,7 +155,7 @@ public class DiceCache {
                 e.printStackTrace();
                 return backupDice(sides);
             } catch (TimeoutException e) {
-                bot.log("Returning backup random due to >2 second wait...");
+                plugin.log("Returning backup random due to >2 second wait...");
                 return backupDice(sides);
             }
         }

@@ -1,0 +1,4 @@
+name: SuccessDice
+version: 1.0-SNAPSHOT
+main: com.dumptruckman.dircbot.successdice.SuccessDicePlugin
+depend: [MathDice]

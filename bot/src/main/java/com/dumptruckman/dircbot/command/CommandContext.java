@@ -1,4 +1,4 @@
-package com.dumptruckman.dircbot;
+package com.dumptruckman.dircbot.command;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -17,15 +17,15 @@ public final class CommandContext {
     private final Set<Character> booleanFlags = new HashSet<Character>();
     private final Map<Character, String> valueFlags = new HashMap<Character, String>();
 
-    CommandContext(@NotNull String args) throws CommandException {
+    public CommandContext(@NotNull String args) throws CommandException {
         this(args.split(" "), null);
     }
 
-    CommandContext(@NotNull String[] args) throws CommandException {
+    public CommandContext(@NotNull String[] args) throws CommandException {
         this(args, null);
     }
 
-    CommandContext(@NotNull String args, @Nullable Set<Character> valueFlags) throws CommandException {
+    public CommandContext(@NotNull String args, @Nullable Set<Character> valueFlags) throws CommandException {
         this(args.split(" "), valueFlags);
     }
 
@@ -34,7 +34,7 @@ public final class CommandContext {
      * @param valueFlags A set containing all value flags. Pass null to disable value flag parsing.
      * @throws CommandException This is thrown if flag fails for some reason.
      */
-    CommandContext(@NotNull String[] args, @Nullable Set<Character> valueFlags) throws CommandException {
+    public CommandContext(@NotNull String[] args, @Nullable Set<Character> valueFlags) throws CommandException {
         if (valueFlags == null) {
             valueFlags = Collections.emptySet();
         }

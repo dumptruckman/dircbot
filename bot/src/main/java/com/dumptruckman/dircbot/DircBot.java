@@ -1,15 +1,19 @@
 package com.dumptruckman.dircbot;
 
-import com.dumptruckman.dircbot.commands.AlternateRollCommand;
-import com.dumptruckman.dircbot.commands.ChanceCommand;
+import com.dumptruckman.dircbot.command.Command;
+import com.dumptruckman.dircbot.command.CommandContext;
+import com.dumptruckman.dircbot.command.CommandException;
+import com.dumptruckman.dircbot.command.CommandHandler;
+import com.dumptruckman.dircbot.command.IllegalCommandAccessException;
 import com.dumptruckman.dircbot.commands.HelpCommand;
 import com.dumptruckman.dircbot.commands.JoinCommand;
 import com.dumptruckman.dircbot.commands.KillCommand;
 import com.dumptruckman.dircbot.commands.LmgtfyCommand;
 import com.dumptruckman.dircbot.commands.LoginCommand;
 import com.dumptruckman.dircbot.commands.PartCommand;
-import com.dumptruckman.dircbot.commands.RollCommand;
-import com.dumptruckman.dircbot.commands.SuccessCommand;
+import com.dumptruckman.dircbot.commands.SayCommand;
+import com.dumptruckman.dircbot.event.bot.BotPreConnectEvent;
+import com.dumptruckman.dircbot.event.bot.BotPreStartupEvent;
 import com.dumptruckman.dircbot.event.irc.ActionEvent;
 import com.dumptruckman.dircbot.event.irc.ChannelInfoEvent;
 import com.dumptruckman.dircbot.event.irc.ConnectEvent;
@@ -18,7 +22,6 @@ import com.dumptruckman.dircbot.event.irc.DccSendRequestEvent;
 import com.dumptruckman.dircbot.event.irc.DeOpEvent;
 import com.dumptruckman.dircbot.event.irc.DeVoiceEvent;
 import com.dumptruckman.dircbot.event.irc.DisconnectEvent;
-import com.dumptruckman.dircbot.event.Events;
 import com.dumptruckman.dircbot.event.irc.FileTransferFinishedEvent;
 import com.dumptruckman.dircbot.event.irc.FingerEvent;
 import com.dumptruckman.dircbot.event.irc.IncomingChatRequestEvent;
@@ -66,18 +69,20 @@ import com.dumptruckman.dircbot.plugin.Plugin;
 import com.dumptruckman.dircbot.plugin.PluginManager;
 import com.dumptruckman.dircbot.plugin.SimplePluginManager;
 import com.dumptruckman.dircbot.plugin.java.JavaPluginLoader;
-import com.dumptruckman.dircbot.util.DiceCache;
-import com.dumptruckman.dircbot.util.DiceEvaluator;
 import com.dumptruckman.dircbot.util.LoggerOutputStream;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jibble.pircbot.DccChat;
 import org.jibble.pircbot.DccFileTransfer;
+import org.jibble.pircbot.InputThread;
 import org.jibble.pircbot.PircBot;
 import org.jibble.pircbot.User;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -87,10 +92,83 @@ import java.util.logging.Logger;
 
 public class DircBot extends PircBot {
 
-    private final Logger logger = Logger.getLogger("DircBot");
+    public static void main(String[] args) throws Exception {
+        System.setProperty("java.util.logging.manager", "org.apache.logging.log4j.jul.LogManager");
 
-    private final DiceCache diceCache = new DiceCache(this);
-    private final DiceEvaluator diceEvaluator = new DiceEvaluator(this);
+        DircBot bot = new DircBot();
+        Bot.setInstance(bot);
+
+        bot.loadPlugins();
+        bot.enablePlugins();
+
+        BotPreStartupEvent preStartupEvent = new BotPreStartupEvent(bot, new HashSet<Character>() {{
+            add('n'); // nickname
+            add('c'); // channels, comma separated
+            add('p'); // bot administrator password
+            add('i'); // identify password
+        }});
+        bot.getPluginManager().callEvent(preStartupEvent);
+
+        String[] argsNew = new String[args.length + 1];
+        argsNew[0] = "dircbot";
+        System.arraycopy(args, 0, argsNew, 1, args.length);
+        CommandContext startupContext = new CommandContext(argsNew, preStartupEvent.getLaunchFlags());
+
+        bot.setVersion("1.0-SNAPSHOT");
+
+        if (startupContext.argsLength() == 0) {
+            System.out.println("You must specify a server.");
+            return;
+        }
+
+        try {
+            String nick = startupContext.getFlag('n', "DircBot");
+            bot.setName(nick);
+            bot.setLogin(nick.length() >= 9 ? nick.substring(0, 8) : nick);
+            bot.setVerbose(startupContext.hasFlag('v'));
+            bot.password = startupContext.getFlag('p', "");
+            bot.freeJoin = startupContext.hasFlag('j');
+            bot.successDiceMode = startupContext.hasFlag('s');
+
+            Bot.callEvent(new BotPreConnectEvent(bot, startupContext));
+
+            if (startupContext.hasFlag('I')) {
+                bot.startIdentServer();
+            }
+
+            bot.connect(startupContext.getString(0));
+
+            try {
+                Field field = PircBot.class.getDeclaredField("_inputThread");
+                field.setAccessible(true);
+                bot._inputThread = (InputThread) field.get(bot);
+            } catch (IllegalArgumentException | IllegalAccessException | NoSuchFieldException | SecurityException e) {
+                e.printStackTrace();
+                bot.disconnect();
+                return;
+            }
+
+            if (startupContext.hasFlag('c')) {
+                String[] channels = startupContext.getFlag('c').split(",");
+                for (String channel : channels) {
+                    bot.joinChannel(channel);
+                }
+            }
+
+            bot.administrators.add(bot.getLogin() + "@" + bot.getInetAddress().getHostName());
+
+            String input;
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(System.in))) {
+                while (!bot.kill && (input = br.readLine()) != null) {
+                    bot.onConsoleInput(input);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private final Logger logger = Logger.getLogger(DircBot.class.getName());
 
     private String password = "";
     private final Set<String> administrators = new HashSet<>();
@@ -98,21 +176,34 @@ public class DircBot extends PircBot {
     private final Map<String, Boolean> nicksToCheckIdentification = new HashMap<>();
     private final Set<String> registeredUsers = new HashSet<>();
 
-    private boolean kill = false;
+    private volatile boolean kill = false;
     private boolean freeJoin = false;
-    private boolean freeRoll = true;
     private boolean successDiceMode = false;
 
     private final File botDirectory = new File(".");
     //private final File pluginDirectory = new File(botDirectory, "plugins");
 
     private final SimplePluginManager pluginManager = new SimplePluginManager(this);
+    private final DefaultCommandHandler commandHandler = new DefaultCommandHandler(this);
+
+    private InputThread _inputThread;
 
     public DircBot() {
         System.setOut(new PrintStream(new LoggerOutputStream(this.getLogger(), Level.INFO), true));
         System.setErr(new PrintStream(new LoggerOutputStream(this.getLogger(), Level.SEVERE), true));
 
         pluginManager.registerInterface(JavaPluginLoader.class);
+
+        commandHandler.registerBuiltInCommand(KillCommand.class);
+        commandHandler.registerBuiltInCommand(JoinCommand.class);
+        commandHandler.registerBuiltInCommand(HelpCommand.class);
+        commandHandler.registerBuiltInCommand(LoginCommand.class);
+        commandHandler.registerBuiltInCommand(PartCommand.class);
+        commandHandler.registerBuiltInCommand(SayCommand.class);
+    }
+
+    public CommandHandler getCommandHandler() {
+        return commandHandler;
     }
 
     private void loadPlugins() {
@@ -154,64 +245,24 @@ public class DircBot extends PircBot {
         }
     }
 
-    public static void main(String[] args) throws Exception {
-        System.setProperty("java.util.logging.manager", "org.apache.logging.log4j.jul.LogManager");
-
-        String[] argsNew = new String[args.length + 1];
-        argsNew[0] = "dircbot";
-        System.arraycopy(args, 0, argsNew, 1, args.length);
-        CommandContext startupContext = new CommandContext(argsNew,
-                new HashSet<Character>() {{
-                    add('n'); // nickname
-                    add('c'); // channels, comma separated
-                    add('p'); // bot administrator password
-                    add('i'); // identify password
-                }});
-
-        DircBot bot = new DircBot();
-        Bot.setInstance(bot);
-        bot.setVersion("1.0-SNAPSHOT");
-
-        if (startupContext.argsLength() == 0) {
-            System.out.println("You must specify a server.");
-            return;
-        }
-
-        try {
-            String nick = startupContext.getFlag('n', "DircBot");
-            bot.setName(nick);
-            bot.setLogin(nick.length() >= 9 ? nick.substring(0, 8) : nick);
-            bot.setVerbose(startupContext.hasFlag('v'));
-            bot.password = startupContext.getFlag('p', "");
-            bot.freeJoin = startupContext.hasFlag('j');
-            bot.freeRoll = !startupContext.hasFlag('R');
-            bot.successDiceMode = startupContext.hasFlag('s');
-
-            bot.loadPlugins();
-            bot.enablePlugins();
-
-            if (startupContext.hasFlag('I')) {
-                bot.startIdentServer();
-            }
-
-            bot.connect(startupContext.getString(0));
-            if (startupContext.hasFlag('c')) {
-                String[] channels = startupContext.getFlag('c').split(",");
-                for (String channel : channels) {
-                    bot.joinChannel(channel);
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
     public PluginManager getPluginManager() {
         return pluginManager;
     }
 
     public Logger getLogger() {
         return logger;
+    }
+
+    private void onConsoleInput(@NotNull String input) {
+        onPrivateMessage("*console", getLogin(), getInetAddress().getHostName(), input);
+    }
+
+    @Override
+    protected void handleLine(String line) {
+        if (line.contains("401") && line.contains("*console")) {
+            return;
+        }
+        super.handleLine(line);
     }
 
     @Override
@@ -221,32 +272,32 @@ public class DircBot extends PircBot {
 
     @Override
     protected void onPrivateMessage(String sender, String login, String hostname, String message) {
-        Events.callEvent(new PrivateMessageEvent(this, sender, login, hostname, message));
+        Bot.callEvent(new PrivateMessageEvent(this, sender, login, hostname, message));
         if (sender.equalsIgnoreCase("NickServ")) {
             onNickServMessage(message);
         }
         try {
             if (message.startsWith("!") && message.length() > 1) {
-                processCommand(null, sender, login, hostname, message.substring(1));
+                getCommandHandler().processCommand(null, sender, login, hostname, message.substring(1));
             } else {
-                processCommand(null, sender, login, hostname, message);
+                getCommandHandler().processCommand(null, sender, login, hostname, message);
             }
         } catch (CommandException e) {
-            if (!message.startsWith("!")) {
-                message = "!" + message;
+            if (e.getCause() != null) {
+                e.printStackTrace();
             }
-            onMessage(null, sender, login, hostname, message);
+            if (!(e instanceof IllegalCommandAccessException)) {
+                sendMessage(sender, e.getMessage());
+            }
         }
     }
 
     @Override
     protected void onMessage(String channel, String sender, String login, String hostname, String message) {
-        Events.callEvent(new MessageEvent(this, sender, login, hostname, channel, message));
+        Bot.callEvent(new MessageEvent(this, sender, login, hostname, channel, message));
         try {
             if (message.startsWith("!") && message.length() > 1) {
-                processCommand(channel, sender, login, hostname, message.substring(1));
-            } else if (freeRoll && RollCommand.isDice(message)) {
-                ((Command) new RollCommand(this, channel, sender, login, hostname, new CommandContext(message))).runCommand();
+                getCommandHandler().processCommand(channel, sender, login, hostname, message.substring(1));
             }
         } catch (CommandException e) {
             if (e.getCause() != null) {
@@ -255,9 +306,13 @@ public class DircBot extends PircBot {
             if (channel == null) {
                 channel = sender;
             }
-            sendMessage(channel, e.getMessage());
+            if (!(e instanceof IllegalCommandAccessException)) {
+                sendMessage(channel, e.getMessage());
+            }
         }
     }
+
+
 
     private void processCommand(@Nullable String channel, String sender, String login, String hostname, String message) throws CommandException {
         CommandContext context = new CommandContext(message);
@@ -266,11 +321,10 @@ public class DircBot extends PircBot {
             case "google":
                 ((Command) new LmgtfyCommand(this, channel, sender, login, hostname, context)).runCommand();
                 break;
+            /*
             case "roll":
                 if (successDiceMode) {
                     ((Command) new AlternateRollCommand(this, channel, sender, login, hostname, context, 10)).runCommand();
-                } else {
-                    ((Command) new RollCommand(this, channel, sender, login, hostname, context)).runCommand();
                 }
                 break;
             case "roll9":
@@ -293,6 +347,7 @@ public class DircBot extends PircBot {
                     ((Command) new ChanceCommand(this, channel, sender, login, hostname, context)).runCommand();
                 }
                 break;
+                */
             case "kill":
                 if (channel == null) {
                     ((Command) new KillCommand(this, null, sender, login, hostname, context)).runCommand();
@@ -326,17 +381,9 @@ public class DircBot extends PircBot {
         }
     }
 
-    public DiceCache getDiceCache() {
-        return diceCache;
-    }
-
-    public DiceEvaluator getDiceEvaluator() {
-        return diceEvaluator;
-    }
-
     @Override
     protected void onPart(String channel, String sender, String login, String hostname) {
-        Events.callEvent(new PartEvent(this, sender, login, hostname, channel));
+        Bot.callEvent(new PartEvent(this, sender, login, hostname, channel));
         if (!isNickInChannels(sender)) {
             if (isAdministrator(login, hostname)) {
                 removeAdministrator(login, hostname);
@@ -348,7 +395,7 @@ public class DircBot extends PircBot {
     @Override
     protected void onDisconnect() {
         DisconnectEvent event = new DisconnectEvent(this, kill);
-        Events.callEvent(event);
+        Bot.callEvent(event);
         if (event.isTerminatingProcess()) {
             System.exit(0);
         }
@@ -356,7 +403,7 @@ public class DircBot extends PircBot {
 
     @Override
     protected void onInvite(String targetNick, String sourceNick, String sourceLogin, String sourceHostname, String channel) {
-        Events.callEvent(new InviteEvent(this, sourceNick, sourceLogin, sourceHostname, channel, targetNick));
+        Bot.callEvent(new InviteEvent(this, sourceNick, sourceLogin, sourceHostname, channel, targetNick));
         try {
             ((Command) new JoinCommand(this, null, sourceNick, sourceLogin, sourceHostname, new CommandContext("join " + channel))).runCommand();
         } catch (CommandException ignore) { }
@@ -479,6 +526,10 @@ public class DircBot extends PircBot {
         disconnect();
     }
 
+    public boolean isPrimaryThread() {
+        return Thread.currentThread().equals(_inputThread);
+    }
+
     public boolean isFreeJoinEnabled() {
         return freeJoin;
     }
@@ -487,242 +538,238 @@ public class DircBot extends PircBot {
         return successDiceMode;
     }
 
-    public boolean isFreeRollEnabled() {
-        return freeRoll;
-    }
-
     @Override
     protected void onConnect() {
-        Events.callEvent(new ConnectEvent(this));
+        Bot.callEvent(new ConnectEvent(this));
     }
 
     @Override
     protected void onServerResponse(int code, String response) {
-        Events.callEvent(new ServerResponseEvent(this, code, response));
+        Bot.callEvent(new ServerResponseEvent(this, code, response));
     }
 
     @Override
     protected void onUserList(String channel, User[] users) {
-        Events.callEvent(new UserListEvent(this, channel, users));
+        Bot.callEvent(new UserListEvent(this, channel, users));
     }
 
     @Override
     protected void onAction(String sender, String login, String hostname, String target, String action) {
-        Events.callEvent(new ActionEvent(this, sender, login, hostname, target, action));
+        Bot.callEvent(new ActionEvent(this, sender, login, hostname, target, action));
     }
 
     @Override
     protected void onNotice(String sourceNick, String sourceLogin, String sourceHostname, String target, String notice) {
-        Events.callEvent(new NoticeEvent(this, sourceNick, sourceLogin, sourceHostname, target, notice));
+        Bot.callEvent(new NoticeEvent(this, sourceNick, sourceLogin, sourceHostname, target, notice));
     }
 
     @Override
     protected void onJoin(String channel, String sender, String login, String hostname) {
-        Events.callEvent(new JoinEvent(this, sender, login, hostname, channel));
+        Bot.callEvent(new JoinEvent(this, sender, login, hostname, channel));
     }
 
     @Override
     protected void onNickChange(String oldNick, String login, String hostname, String newNick) {
-        Events.callEvent(new NickChangeEvent(this, oldNick, login, hostname, newNick));
+        Bot.callEvent(new NickChangeEvent(this, oldNick, login, hostname, newNick));
     }
 
     @Override
     protected void onKick(String channel, String kickerNick, String kickerLogin, String kickerHostname, String recipientNick, String reason) {
-        Events.callEvent(new KickEvent(this, kickerNick, kickerLogin, kickerHostname, channel, recipientNick, reason));
+        Bot.callEvent(new KickEvent(this, kickerNick, kickerLogin, kickerHostname, channel, recipientNick, reason));
     }
 
     @Override
     protected void onQuit(String sourceNick, String sourceLogin, String sourceHostname, String reason) {
-        Events.callEvent(new QuitEvent(this, sourceNick, sourceLogin, sourceHostname, reason));
+        Bot.callEvent(new QuitEvent(this, sourceNick, sourceLogin, sourceHostname, reason));
     }
 
     @Override
     protected void onTopic(String channel, String topic, String setBy, long date, boolean changed) {
-        Events.callEvent(new TopicEvent(this, channel, topic, setBy, date, changed));
+        Bot.callEvent(new TopicEvent(this, channel, topic, setBy, date, changed));
     }
 
     @Override
     protected void onChannelInfo(String channel, int userCount, String topic) {
-        Events.callEvent(new ChannelInfoEvent(this, channel, topic, userCount));
+        Bot.callEvent(new ChannelInfoEvent(this, channel, topic, userCount));
     }
 
     @Override
     protected void onMode(String channel, String sourceNick, String sourceLogin, String sourceHostname, String mode) {
-        Events.callEvent(new ModeEvent(this, sourceNick, sourceLogin, sourceHostname, channel, mode));
+        Bot.callEvent(new ModeEvent(this, sourceNick, sourceLogin, sourceHostname, channel, mode));
     }
 
     @Override
     protected void onUserMode(String targetNick, String sourceNick, String sourceLogin, String sourceHostname, String mode) {
-        Events.callEvent(new UserModeEvent(this, sourceNick, sourceLogin, sourceHostname, targetNick, mode));
+        Bot.callEvent(new UserModeEvent(this, sourceNick, sourceLogin, sourceHostname, targetNick, mode));
     }
 
     @Override
     protected void onOp(String channel, String sourceNick, String sourceLogin, String sourceHostname, String recipient) {
-        Events.callEvent(new OpEvent(this, sourceNick, sourceLogin, sourceHostname, channel, recipient));
+        Bot.callEvent(new OpEvent(this, sourceNick, sourceLogin, sourceHostname, channel, recipient));
     }
 
     @Override
     protected void onDeop(String channel, String sourceNick, String sourceLogin, String sourceHostname, String recipient) {
-        Events.callEvent(new DeOpEvent(this, sourceNick, sourceLogin, sourceHostname, channel, recipient));
+        Bot.callEvent(new DeOpEvent(this, sourceNick, sourceLogin, sourceHostname, channel, recipient));
     }
 
     @Override
     protected void onVoice(String channel, String sourceNick, String sourceLogin, String sourceHostname, String recipient) {
-        Events.callEvent(new VoiceEvent(this, sourceNick, sourceLogin, sourceHostname, channel, recipient));
+        Bot.callEvent(new VoiceEvent(this, sourceNick, sourceLogin, sourceHostname, channel, recipient));
     }
 
     @Override
     protected void onDeVoice(String channel, String sourceNick, String sourceLogin, String sourceHostname, String recipient) {
-        Events.callEvent(new DeVoiceEvent(this, sourceNick, sourceLogin, sourceHostname, channel, recipient));
+        Bot.callEvent(new DeVoiceEvent(this, sourceNick, sourceLogin, sourceHostname, channel, recipient));
     }
 
     @Override
     protected void onSetChannelKey(String channel, String sourceNick, String sourceLogin, String sourceHostname, String key) {
-        Events.callEvent(new SetChannelKeyEvent(this, sourceNick, sourceLogin, sourceHostname, channel, key));
+        Bot.callEvent(new SetChannelKeyEvent(this, sourceNick, sourceLogin, sourceHostname, channel, key));
     }
 
     @Override
     protected void onRemoveChannelKey(String channel, String sourceNick, String sourceLogin, String sourceHostname, String key) {
-        Events.callEvent(new RemoveChannelKeyEvent(this, sourceNick, sourceLogin, sourceHostname, channel, key));
+        Bot.callEvent(new RemoveChannelKeyEvent(this, sourceNick, sourceLogin, sourceHostname, channel, key));
     }
 
     @Override
     protected void onSetChannelLimit(String channel, String sourceNick, String sourceLogin, String sourceHostname, int limit) {
-        Events.callEvent(new SetChannelLimitEvent(this, sourceNick, sourceLogin, sourceHostname, channel, limit));
+        Bot.callEvent(new SetChannelLimitEvent(this, sourceNick, sourceLogin, sourceHostname, channel, limit));
     }
 
     @Override
     protected void onRemoveChannelLimit(String channel, String sourceNick, String sourceLogin, String sourceHostname) {
-        Events.callEvent(new RemoveChannelLimitEvent(this, sourceNick, sourceLogin, sourceHostname, channel));
+        Bot.callEvent(new RemoveChannelLimitEvent(this, sourceNick, sourceLogin, sourceHostname, channel));
     }
 
     @Override
     protected void onSetChannelBan(String channel, String sourceNick, String sourceLogin, String sourceHostname, String hostmask) {
-        Events.callEvent(new SetChannelBanEvent(this, sourceNick, sourceLogin, sourceHostname, channel, hostmask));
+        Bot.callEvent(new SetChannelBanEvent(this, sourceNick, sourceLogin, sourceHostname, channel, hostmask));
     }
 
     @Override
     protected void onRemoveChannelBan(String channel, String sourceNick, String sourceLogin, String sourceHostname, String hostmask) {
-        Events.callEvent(new RemoveChannelBanEvent(this, sourceNick, sourceLogin, sourceHostname, channel, hostmask));
+        Bot.callEvent(new RemoveChannelBanEvent(this, sourceNick, sourceLogin, sourceHostname, channel, hostmask));
     }
 
     @Override
     protected void onSetTopicProtection(String channel, String sourceNick, String sourceLogin, String sourceHostname) {
-        Events.callEvent(new SetTopicProtectionEvent(this, sourceNick, sourceLogin, sourceHostname, channel));
+        Bot.callEvent(new SetTopicProtectionEvent(this, sourceNick, sourceLogin, sourceHostname, channel));
     }
 
     @Override
     protected void onRemoveTopicProtection(String channel, String sourceNick, String sourceLogin, String sourceHostname) {
-        Events.callEvent(new RemoveTopicProtectionEvent(this, sourceNick, sourceLogin, sourceHostname, channel));
+        Bot.callEvent(new RemoveTopicProtectionEvent(this, sourceNick, sourceLogin, sourceHostname, channel));
     }
 
     @Override
     protected void onSetNoExternalMessages(String channel, String sourceNick, String sourceLogin, String sourceHostname) {
-        Events.callEvent(new SetNoExternalMessagesEvent(this, sourceNick, sourceLogin, sourceHostname, channel));
+        Bot.callEvent(new SetNoExternalMessagesEvent(this, sourceNick, sourceLogin, sourceHostname, channel));
     }
 
     @Override
     protected void onRemoveNoExternalMessages(String channel, String sourceNick, String sourceLogin, String sourceHostname) {
-        Events.callEvent(new RemoveNoExternalMessagesEvent(this, sourceNick, sourceLogin, sourceHostname, channel));
+        Bot.callEvent(new RemoveNoExternalMessagesEvent(this, sourceNick, sourceLogin, sourceHostname, channel));
     }
 
     @Override
     protected void onSetInviteOnly(String channel, String sourceNick, String sourceLogin, String sourceHostname) {
-        Events.callEvent(new SetInviteOnlyEvent(this, sourceNick, sourceLogin, sourceHostname, channel));
+        Bot.callEvent(new SetInviteOnlyEvent(this, sourceNick, sourceLogin, sourceHostname, channel));
     }
 
     @Override
     protected void onRemoveInviteOnly(String channel, String sourceNick, String sourceLogin, String sourceHostname) {
-        Events.callEvent(new RemoveInviteOnlyEvent(this, sourceNick, sourceLogin, sourceHostname, channel));
+        Bot.callEvent(new RemoveInviteOnlyEvent(this, sourceNick, sourceLogin, sourceHostname, channel));
     }
 
     @Override
     protected void onSetModerated(String channel, String sourceNick, String sourceLogin, String sourceHostname) {
-        Events.callEvent(new SetModeratedEvent(this, sourceNick, sourceLogin, sourceHostname, channel));
+        Bot.callEvent(new SetModeratedEvent(this, sourceNick, sourceLogin, sourceHostname, channel));
     }
 
     @Override
     protected void onRemoveModerated(String channel, String sourceNick, String sourceLogin, String sourceHostname) {
-        Events.callEvent(new RemoveModeratedEvent(this, sourceNick, sourceLogin, sourceHostname, channel));
+        Bot.callEvent(new RemoveModeratedEvent(this, sourceNick, sourceLogin, sourceHostname, channel));
     }
 
     @Override
     protected void onSetPrivate(String channel, String sourceNick, String sourceLogin, String sourceHostname) {
-        Events.callEvent(new SetPrivateEvent(this, sourceNick, sourceLogin, sourceHostname, channel));
+        Bot.callEvent(new SetPrivateEvent(this, sourceNick, sourceLogin, sourceHostname, channel));
     }
 
     @Override
     protected void onRemovePrivate(String channel, String sourceNick, String sourceLogin, String sourceHostname) {
-        Events.callEvent(new RemovePrivateEvent(this, sourceNick, sourceLogin, sourceHostname, channel));
+        Bot.callEvent(new RemovePrivateEvent(this, sourceNick, sourceLogin, sourceHostname, channel));
     }
 
     @Override
     protected void onSetSecret(String channel, String sourceNick, String sourceLogin, String sourceHostname) {
-        Events.callEvent(new SetSecretEvent(this, sourceNick, sourceLogin, sourceHostname, channel));
+        Bot.callEvent(new SetSecretEvent(this, sourceNick, sourceLogin, sourceHostname, channel));
     }
 
     @Override
     protected void onRemoveSecret(String channel, String sourceNick, String sourceLogin, String sourceHostname) {
-        Events.callEvent(new RemoveSecretEvent(this, sourceNick, sourceLogin, sourceHostname, channel));
+        Bot.callEvent(new RemoveSecretEvent(this, sourceNick, sourceLogin, sourceHostname, channel));
     }
 
     @Override
     protected void onDccSendRequest(String sourceNick, String sourceLogin, String sourceHostname, String filename, long address, int port, int size) {
-        Events.callEvent(new DccSendRequestEvent(this, sourceNick, sourceLogin, sourceHostname, filename, address, port, size));
+        Bot.callEvent(new DccSendRequestEvent(this, sourceNick, sourceLogin, sourceHostname, filename, address, port, size));
     }
 
     @Override
     protected void onDccChatRequest(String sourceNick, String sourceLogin, String sourceHostname, long address, int port) {
-        Events.callEvent(new DccChatRequestEvent(this, sourceNick, sourceLogin, sourceHostname, address, port));
+        Bot.callEvent(new DccChatRequestEvent(this, sourceNick, sourceLogin, sourceHostname, address, port));
     }
 
     @Override
     protected void onIncomingFileTransfer(DccFileTransfer transfer) {
-        Events.callEvent(new IncomingFileTransferEvent(this, transfer));
+        Bot.callEvent(new IncomingFileTransferEvent(this, transfer));
     }
 
     @Override
     protected void onFileTransferFinished(DccFileTransfer transfer, Exception e) {
-        Events.callEvent(new FileTransferFinishedEvent(this, transfer, e));
+        Bot.callEvent(new FileTransferFinishedEvent(this, transfer, e));
     }
 
     @Override
     protected void onIncomingChatRequest(DccChat chat) {
-        Events.callEvent(new IncomingChatRequestEvent(this, chat));
+        Bot.callEvent(new IncomingChatRequestEvent(this, chat));
     }
 
     @Override
     protected void onVersion(String sourceNick, String sourceLogin, String sourceHostname, String target) {
         super.onVersion(sourceNick, sourceLogin, sourceHostname, target);
-        Events.callEvent(new VersionEvent(this, sourceNick, sourceLogin, sourceHostname, target));
+        Bot.callEvent(new VersionEvent(this, sourceNick, sourceLogin, sourceHostname, target));
     }
 
     @Override
     protected void onPing(String sourceNick, String sourceLogin, String sourceHostname, String target, String pingValue) {
         super.onPing(sourceNick, sourceLogin, sourceHostname, target, pingValue);
-        Events.callEvent(new PingEvent(this, sourceNick, sourceLogin, sourceHostname, target, pingValue));
+        Bot.callEvent(new PingEvent(this, sourceNick, sourceLogin, sourceHostname, target, pingValue));
     }
 
     @Override
     protected void onServerPing(String response) {
         super.onServerPing(response);
-        Events.callEvent(new ServerPingEvent(this, response));
+        Bot.callEvent(new ServerPingEvent(this, response));
     }
 
     @Override
     protected void onTime(String sourceNick, String sourceLogin, String sourceHostname, String target) {
         super.onTime(sourceNick, sourceLogin, sourceHostname, target);
-        Events.callEvent(new TimeEvent(this, sourceNick, sourceLogin, sourceHostname, target));
+        Bot.callEvent(new TimeEvent(this, sourceNick, sourceLogin, sourceHostname, target));
     }
 
     @Override
     protected void onFinger(String sourceNick, String sourceLogin, String sourceHostname, String target) {
         super.onFinger(sourceNick, sourceLogin, sourceHostname, target);
-        Events.callEvent(new FingerEvent(this, sourceNick, sourceLogin, sourceHostname, target));
+        Bot.callEvent(new FingerEvent(this, sourceNick, sourceLogin, sourceHostname, target));
     }
 
     @Override
     protected void onUnknown(String line) {
-        Events.callEvent(new UnknownEvent(this, line));
+        Bot.callEvent(new UnknownEvent(this, line));
     }
 }

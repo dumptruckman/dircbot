@@ -1,5 +1,6 @@
 package com.dumptruckman.dircbot;
 
+import com.dumptruckman.dircbot.event.Event;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.logging.Logger;
@@ -18,5 +19,12 @@ public enum Bot {
             throw new IllegalStateException("Bot instance has not been initialized");
         }
         return instance.getLogger();
+    }
+
+    public static void callEvent(@NotNull Event event) {
+        if (instance == null) {
+            throw new IllegalStateException("Bot instance has not been initialized");
+        }
+        instance.getPluginManager().callEvent(event);
     }
 }

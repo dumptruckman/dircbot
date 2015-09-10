@@ -1,4 +1,4 @@
-package com.dumptruckman.dircbot.util;
+package com.dumptruckman.dircbot.mathdice;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -1,6 +1,5 @@
 package com.dumptruckman.dircbot.plugin;
 
-import com.dumptruckman.dircbot.Command;
 import com.dumptruckman.dircbot.DircBot;
 import com.dumptruckman.dircbot.event.Event;
 import com.dumptruckman.dircbot.event.HandlerList;
@@ -458,6 +457,55 @@ public class SimplePluginManager implements PluginManager {
             lookupNames.clear();
             HandlerList.unregisterAll();
             fileAssociations.clear();
+        }
+    }
+
+    /**
+     * Calls an event with the given details.
+     * <p>
+     * This method only synchronizes when the event is not asynchronous.
+     *
+     * @param event Event details
+     */
+    public void callEvent(Event event) {
+        if (Thread.holdsLock(this)) {
+            throw new IllegalStateException(event.getEventName() + " cannot be triggered asynchronously from inside synchronized code.");
+        }
+        /*
+        if (bot.isPrimaryThread()) {
+            throw new IllegalStateException(event.getEventName() + " cannot be triggered asynchronously from primary server thread.");
+        }
+        */
+        fireEvent(event);
+    }
+
+    private void fireEvent(Event event) {
+        HandlerList handlers = event.getHandlers();
+        RegisteredListener[] listeners = handlers.getRegisteredListeners();
+
+        for (RegisteredListener registration : listeners) {
+            if (!registration.getPlugin().isEnabled()) {
+                continue;
+            }
+
+            try {
+                registration.callEvent(event);
+            } /*catch (AuthorNagException ex) {
+                Plugin plugin = registration.getPlugin();
+
+                if (plugin.isNaggable()) {
+                    plugin.setNaggable(false);
+
+                    server.getLogger().log(Level.SEVERE, String.format(
+                            "Nag author(s): '%s' of '%s' about the following: %s",
+                            plugin.getDescription().getAuthors(),
+                            plugin.getDescription().getFullName(),
+                            ex.getMessage()
+                            ));
+                }
+            } */catch (Throwable ex) {
+                bot.getLogger().log(Level.SEVERE, "Could not pass event " + event.getEventName() + " to " + registration.getPlugin().getDescription().getFullName(), ex);
+            }
         }
     }
 }

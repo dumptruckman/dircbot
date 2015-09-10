@@ -1,11 +1,14 @@
 package com.dumptruckman.dircbot.commands;
 
-import com.dumptruckman.dircbot.Command;
-import com.dumptruckman.dircbot.CommandContext;
-import com.dumptruckman.dircbot.CommandException;
+import com.dumptruckman.dircbot.command.Command;
+import com.dumptruckman.dircbot.command.CommandContext;
+import com.dumptruckman.dircbot.command.CommandException;
 import com.dumptruckman.dircbot.DircBot;
+import com.dumptruckman.dircbot.command.CommandInfo;
+import com.dumptruckman.dircbot.command.CommandType;
 import org.jetbrains.annotations.NotNull;
 
+@CommandInfo(aliases = "help", type = CommandType.PRIVATE)
 public class HelpCommand extends Command {
 
     public HelpCommand(DircBot bot, String channel, String sender, String login, String hostname, CommandContext context) throws CommandException {
@@ -33,9 +36,11 @@ public class HelpCommand extends Command {
         } else {
             replyToSender("--> roll [dice/math expression] - rolls some dice.");
         }
+        /*
         if (getBot().isFreeRollEnabled()) {
             replyToSender("--> <dice expression> - rolls some dice.");
         }
+        */
         if (!loggedIn) {
             replyToSender("More commands may be available to a bot administrator.");
         }

@@ -1,18 +1,32 @@
-package com.dumptruckman.dircbot.commands;
+package com.dumptruckman.dircbot.successdice;
 
-import com.dumptruckman.dircbot.Command;
-import com.dumptruckman.dircbot.CommandContext;
-import com.dumptruckman.dircbot.CommandException;
-import com.dumptruckman.dircbot.DircBot;
+import com.dumptruckman.dircbot.command.CommandContext;
+import com.dumptruckman.dircbot.command.CommandException;
+import com.dumptruckman.dircbot.command.CommandInfo;
+import com.dumptruckman.dircbot.plugin.PluginCommand;
 import org.jetbrains.annotations.NotNull;
 
-public class AlternateRollCommand extends Command {
+@CommandInfo(aliases = {"roll", "roll9", "roll8"})
+public class RollCommand extends PluginCommand<SuccessDicePlugin> {
 
     private final int explodeOn;
 
-    public AlternateRollCommand(DircBot bot, String channel, String sender, String login, String hostname, CommandContext context, int explodeOn) throws CommandException {
-        super(bot, channel, sender, login, hostname, context);
-        this.explodeOn = explodeOn;
+    public RollCommand(SuccessDicePlugin plugin, String channel, String sender, String login, String hostname, CommandContext context) throws CommandException {
+        super(plugin, channel, sender, login, hostname, context);
+        switch(context.getCommand()) {
+            case "roll":
+                this.explodeOn = 10;
+                break;
+            case "roll9":
+                this.explodeOn = 9;
+                break;
+            case "roll8":
+                this.explodeOn = 8;
+                break;
+            default:
+                this.explodeOn = 10;
+                break;
+        }
     }
 
     @Override
@@ -75,20 +89,20 @@ public class AlternateRollCommand extends Command {
     }
 
     private StringBuilder rollAndAppendResults(@NotNull String rollString, @NotNull StringBuilder buffer) {
-        double rollResult = getBot().getDiceCache().getRoll(10);
+        double rollResult = getPlugin().getDiceCache().getRoll(10);
         int rollTotal = (int) rollResult;
         int explodeTimes = 0;
         if (rollResult >= explodeOn) {
             do {
-                rollResult = getBot().getDiceCache().getRoll(10);
+                rollResult = getPlugin().getDiceCache().getRoll(10);
                 rollTotal += rollResult;
                 explodeTimes++;
             } while (rollResult >= explodeOn);
         }
-        rollResult = getBot().getDiceEvaluator().evaluate(rollTotal + rollString);
+        rollResult = getPlugin().getDiceEvaluator().evaluate(rollTotal + rollString);
 
         int successes = SuccessCommand.countSuccesses(rollResult);
-        buffer.append(RollCommand.FORMAT.format(rollResult)).append(" - ");
+        buffer.append(com.dumptruckman.dircbot.mathdice.RollCommand.FORMAT.format(rollResult)).append(" - ");
         if (successes < 1) {
             buffer.append("No Success");
         } else if (successes == 1) {

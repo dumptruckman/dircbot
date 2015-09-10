@@ -1,6 +1,8 @@
-package com.dumptruckman.dircbot;
+package com.dumptruckman.dircbot.command;
 
+import com.dumptruckman.dircbot.DircBot;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public abstract class Command {
 
@@ -11,7 +13,7 @@ public abstract class Command {
     private final String hostname;
     private final CommandContext commandContext;
 
-    public Command(DircBot bot, String channel, String sender, String login, String hostname, CommandContext commandContext) throws CommandException {
+    public Command(@NotNull DircBot bot, @Nullable String channel, @NotNull String sender, @NotNull String login, @NotNull String hostname, @NotNull CommandContext commandContext) throws CommandException {
         this.bot = bot;
         this.channel = channel;
         this.sender = sender;
@@ -20,30 +22,36 @@ public abstract class Command {
         this.commandContext = commandContext;
     }
 
-    void runCommand() {
+    public void runCommand() {
         runCommand(commandContext);
     }
 
+    @NotNull
     public DircBot getBot() {
         return bot;
     }
 
+    @Nullable
     public String getChannel() {
         return channel;
     }
 
+    @NotNull
     public String getSender() {
         return sender;
     }
 
+    @NotNull
     public String getLogin() {
         return login;
     }
 
+    @NotNull
     public String getHostname() {
         return hostname;
     }
 
+    @NotNull
     public CommandContext getCommandContext() {
         return commandContext;
     }

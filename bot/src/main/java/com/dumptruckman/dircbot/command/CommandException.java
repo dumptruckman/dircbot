@@ -1,4 +1,4 @@
-package com.dumptruckman.dircbot;
+package com.dumptruckman.dircbot.command;
 
 import org.jetbrains.annotations.NotNull;
 

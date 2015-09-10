@@ -1,19 +1,21 @@
-package com.dumptruckman.dircbot.commands;
+package com.dumptruckman.dircbot.successdice;
 
-import com.dumptruckman.dircbot.Command;
-import com.dumptruckman.dircbot.CommandContext;
-import com.dumptruckman.dircbot.CommandException;
-import com.dumptruckman.dircbot.DircBot;
+import com.dumptruckman.dircbot.command.CommandContext;
+import com.dumptruckman.dircbot.command.CommandException;
+import com.dumptruckman.dircbot.command.CommandInfo;
+import com.dumptruckman.dircbot.mathdice.MathDicePlugin;
+import com.dumptruckman.dircbot.plugin.PluginCommand;
 import org.jetbrains.annotations.NotNull;
 
-public class SuccessCommand extends Command {
+@CommandInfo(aliases = "success")
+public class SuccessCommand extends PluginCommand<MathDicePlugin> {
 
     static int countSuccesses(double roll) {
         return ((int) (Math.floor((roll - 8) / 3))) + 1;
     }
 
-    public SuccessCommand(DircBot bot, String channel, String sender, String login, String hostname, CommandContext context) throws CommandException {
-        super(bot, channel, sender, login, hostname, context);
+    public SuccessCommand(MathDicePlugin plugin, String channel, String sender, String login, String hostname, CommandContext context) throws CommandException {
+        super(plugin, channel, sender, login, hostname, context);
     }
 
     @Override

@@ -1,15 +1,17 @@
-package com.dumptruckman.dircbot.commands;
+package com.dumptruckman.dircbot.successdice;
 
-import com.dumptruckman.dircbot.Command;
-import com.dumptruckman.dircbot.CommandContext;
-import com.dumptruckman.dircbot.CommandException;
-import com.dumptruckman.dircbot.DircBot;
+import com.dumptruckman.dircbot.command.CommandContext;
+import com.dumptruckman.dircbot.command.CommandException;
+import com.dumptruckman.dircbot.command.CommandInfo;
+import com.dumptruckman.dircbot.mathdice.MathDicePlugin;
+import com.dumptruckman.dircbot.plugin.PluginCommand;
 import org.jetbrains.annotations.NotNull;
 
-public class ChanceCommand extends Command {
+@CommandInfo(aliases = "chance")
+public class ChanceCommand extends PluginCommand<MathDicePlugin> {
 
-    public ChanceCommand(DircBot bot, String channel, String sender, String login, String hostname, CommandContext context) throws CommandException {
-        super(bot, channel, sender, login, hostname, context);
+    public ChanceCommand(MathDicePlugin plugin, String channel, String sender, String login, String hostname, CommandContext context) throws CommandException {
+        super(plugin, channel, sender, login, hostname, context);
     }
 
     @Override
@@ -68,8 +70,8 @@ public class ChanceCommand extends Command {
     }
 
     private StringBuilder rollAndAppendResults(@NotNull String rollString, @NotNull StringBuilder buffer) {
-        int rollResult = getBot().getDiceCache().getRoll(10);
-        buffer.append(RollCommand.FORMAT.format(rollResult)).append(" - ");
+        int rollResult = getPlugin().getDiceCache().getRoll(10);
+        buffer.append(com.dumptruckman.dircbot.mathdice.RollCommand.FORMAT.format(rollResult)).append(" - ");
         if (rollResult == 10) {
             buffer.append("1 Success");
         } else {

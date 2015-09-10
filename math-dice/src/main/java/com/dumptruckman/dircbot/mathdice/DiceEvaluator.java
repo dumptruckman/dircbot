@@ -1,4 +1,4 @@
-package com.dumptruckman.dircbot.util;
+package com.dumptruckman.dircbot.mathdice;
 
 import com.dumptruckman.dircbot.DircBot;
 import com.fathzer.soft.javaluator.BracketPair;
@@ -34,11 +34,11 @@ public class DiceEvaluator extends DoubleEvaluator {
         return parameters;
     }
 
-    private final DircBot bot;
+    private final MathDicePlugin plugin;
 
-    public DiceEvaluator(DircBot bot) {
+    DiceEvaluator(MathDicePlugin plugin) {
         super(getParameters());
-        this.bot = bot;
+        this.plugin = plugin;
     }
 
     @Override
@@ -64,7 +64,7 @@ public class DiceEvaluator extends DoubleEvaluator {
             StringBuilder rollString = new StringBuilder("").append(number).append("d").append(sides).append("=");
             double total = 0;
             for (int i = 0; i < number; i++) {
-                int roll = bot.getDiceCache().getRoll(sides);
+                int roll = plugin.getDiceCache().getRoll(sides);
                 total += roll;
                 if (i != 0) {
                     rollString.append(",");

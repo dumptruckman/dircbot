@@ -1,8 +1,8 @@
 package com.dumptruckman.dircbot.commands;
 
-import com.dumptruckman.dircbot.Command;
-import com.dumptruckman.dircbot.CommandContext;
-import com.dumptruckman.dircbot.CommandException;
+import com.dumptruckman.dircbot.command.Command;
+import com.dumptruckman.dircbot.command.CommandContext;
+import com.dumptruckman.dircbot.command.CommandException;
 import com.dumptruckman.dircbot.DircBot;
 import org.jetbrains.annotations.NotNull;
 
