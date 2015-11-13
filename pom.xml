@@ -16,7 +16,11 @@
     <repositories>
         <repository>
             <id>onarandombox</id>
-            <url>http://repo.onarandombox.com/content/repositories/thirdparty/</url>
+            <url>http://repo.onarandombox.com/content/groups/public/</url>
+        </repository>
+        <repository>
+            <id>onarandombox-3rdparty-dev</id>
+            <url>http://repo.onarandombox.com/content/repositories/thirdparty-dev/</url>
         </repository>
     </repositories>
 
