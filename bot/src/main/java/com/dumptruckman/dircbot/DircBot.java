@@ -4,6 +4,7 @@ import com.dumptruckman.dircbot.command.Command;
 import com.dumptruckman.dircbot.command.CommandContext;
 import com.dumptruckman.dircbot.command.CommandException;
 import com.dumptruckman.dircbot.command.CommandHandler;
+import com.dumptruckman.dircbot.command.CommandNotFoundException;
 import com.dumptruckman.dircbot.command.IllegalCommandAccessException;
 import com.dumptruckman.dircbot.commands.HelpCommand;
 import com.dumptruckman.dircbot.commands.JoinCommand;
@@ -306,7 +307,8 @@ public class DircBot extends PircBot {
             if (channel == null) {
                 channel = sender;
             }
-            if (!(e instanceof IllegalCommandAccessException)) {
+            if (!(e instanceof IllegalCommandAccessException)
+                    && !(e instanceof CommandNotFoundException)) {
                 sendMessage(channel, e.getMessage());
             }
         }
@@ -321,33 +323,6 @@ public class DircBot extends PircBot {
             case "google":
                 ((Command) new LmgtfyCommand(this, channel, sender, login, hostname, context)).runCommand();
                 break;
-            /*
-            case "roll":
-                if (successDiceMode) {
-                    ((Command) new AlternateRollCommand(this, channel, sender, login, hostname, context, 10)).runCommand();
-                }
-                break;
-            case "roll9":
-                if (successDiceMode) {
-                    ((Command) new AlternateRollCommand(this, channel, sender, login, hostname, context, 9)).runCommand();
-                }
-                break;
-            case "roll8":
-                if (successDiceMode) {
-                    ((Command) new AlternateRollCommand(this, channel, sender, login, hostname, context, 8)).runCommand();
-                }
-                break;
-            case "success":
-                if (successDiceMode) {
-                    ((Command) new SuccessCommand(this, channel, sender, login, hostname, context)).runCommand();
-                }
-                break;
-            case "chance":
-                if (successDiceMode) {
-                    ((Command) new ChanceCommand(this, channel, sender, login, hostname, context)).runCommand();
-                }
-                break;
-                */
             case "kill":
                 if (channel == null) {
                     ((Command) new KillCommand(this, null, sender, login, hostname, context)).runCommand();
