@@ -157,48 +157,18 @@ and adjust the build number accordingly -->
                 </configuration>
             </plugin>
             <plugin>
-                <groupId>com.electriccloud</groupId>
-                <artifactId>javac2-maven-plugin</artifactId>
-                <version>1.0.2</version>
+                <groupId>com.torstling.intellij</groupId>
+                <artifactId>notnull-instrumenter-maven-plugin</artifactId>
+                <version>0.1.0</version>
                 <executions>
                     <execution>
-                        <id>@NotNull Instrumentation</id>
                         <goals>
                             <goal>instrument</goal>
+                            <goal>tests-instrument</goal>
                         </goals>
-                        <phase>process-classes</phase>
-                    </execution>
-                    <execution>
-                        <id>@NotNull Test Instrumentation</id>
-                        <goals>
-                            <goal>testInstrument</goal>
-                        </goals>
-                        <phase>process-test-classes</phase>
                     </execution>
                 </executions>
             </plugin>
-            <!--plugin>
-                <groupId>com.google.code.maven-replacer-plugin</groupId>
-                <artifactId>maven-replacer-plugin</artifactId>
-                <version>1.3.8</version>
-                <executions>
-                    <execution>
-                        <phase>prepare-package</phase>
-                        <goals>
-                            <goal>replace</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <file>target/classes/plugin.yml</file>
-                    <replacements>
-                        <replacement>
-                            <token>maven-version-number</token>
-                            <value>${project.version}-b${project.build.number}</value>
-                        </replacement>
-                    </replacements>
-                </configuration>
-            </plugin-->
             <!-- Maven Source Plugin -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
