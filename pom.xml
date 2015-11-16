@@ -24,6 +24,21 @@
         </repository>
     </repositories>
 
+    <pluginRepositories>
+        <pluginRepository>
+            <id>doodleproject-repo</id>
+            <name>DoodleProject Maven 2 Repository</name>
+            <url>http://doodleproject.sourceforge.net/maven2/release</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+        </pluginRepository>
+        <pluginRepository>
+            <id>onarandombox</id>
+            <url>http://repo.onarandombox.com/content/groups/public/</url>
+        </pluginRepository>
+    </pluginRepositories>
+
     <licenses>
         <license>
             <name>Mozilla Public License 2.0</name>

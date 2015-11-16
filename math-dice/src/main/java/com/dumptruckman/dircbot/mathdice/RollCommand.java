@@ -12,7 +12,7 @@ import java.util.regex.Pattern;
 @CommandInfo(aliases = {"roll", "r"})
 public class RollCommand extends PluginCommand<MathDicePlugin> {
 
-    private static final Pattern DICE_PATTERN = Pattern.compile("([\\d()+\\-/^*d]+#)*[\\d()+\\-/^*d]*d[\\d()+\\-/^*d]+\\s.*");
+    private static final Pattern DICE_PATTERN = Pattern.compile("([\\d()+\\-/^*d]+#)*[\\d()+\\-/^*d]*d[\\d()+\\-/^*d]+(\\s.*)*");
     public static final DecimalFormat FORMAT = new DecimalFormat() {{setDecimalSeparatorAlwaysShown(false);}};
 
     public static boolean isDice(@NotNull String message) {

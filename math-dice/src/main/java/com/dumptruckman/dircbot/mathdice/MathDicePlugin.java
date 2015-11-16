@@ -53,6 +53,8 @@ public class MathDicePlugin extends JavaPlugin implements Listener {
 
     @EventHandler
     private void onMessage(MessageEvent event) {
+        System.out.println("freeroll? " + freeRoll + " message: " + event.getMessage() + " isDice? " + RollCommand.isDice(event.getMessage()));
+
         if (freeRoll && RollCommand.isDice(event.getMessage())) {
             try {
                 (new RollCommand(this, event.getChannel(), event.getSourceNick(), event.getSourceLogin(), event.getSourceHostname(), new CommandContext(event.getMessage()))).runCommand();
